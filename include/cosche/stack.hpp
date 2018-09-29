@@ -9,7 +9,8 @@ namespace cosche
 template <std::size_t SIZE>
 class TStack
 {
-    // Note: still unsure why rsp isn't aligned without this offset
+    // Note, the offset is needed to make room for
+    // the return address used upon coroutine exit
     static constexpr std::size_t OFFSET = 0x08;
     static constexpr std::size_t ALIGN  = 0x10;
 
