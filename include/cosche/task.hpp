@@ -2,9 +2,9 @@
 
 #include "cosche/factory_singleton.hpp"
 #include "cosche/coroutine.hpp"
-#include "cosche/stack.hpp"
 
 #include <functional>
+#include <optional>
 #include <utility>
 #include <cstdint>
 #include <future>
@@ -20,11 +20,7 @@ namespace task
 class Abstract
 {
 
-    friend class cosche::Scheduler;
-
 public:
-
-    static void entryPoint();
 
     Abstract(Scheduler& scheduler);
 
@@ -34,8 +30,6 @@ public:
 
     Scheduler& _scheduler;
     Coroutine  _coroutine;
-
-    static thread_local Abstract* TO_RUN;
 };
 
 } // namespace task

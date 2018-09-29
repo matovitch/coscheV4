@@ -6,8 +6,6 @@
 namespace cosche
 {
 
-void entryPoint();
-
 struct Coroutine
 {
     static constexpr std::size_t STACK_SIZE = 16 * 1024;

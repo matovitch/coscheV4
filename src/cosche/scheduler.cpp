@@ -12,7 +12,7 @@
 namespace cosche
 {
 
-Scheduler::Scheduler() : _isRunning{false} 
+Scheduler::Scheduler()
 {
     mmxFpuSave(&MMX_FPU_STATE);
 }
@@ -26,12 +26,14 @@ void Scheduler::attach(TaskNode& lhs,
     releaseContext(lhs);
 }
 
-void Scheduler::attachBatch(TaskNode& taskNode,
-                            const std::vector<TaskNode*>& dependees)
+void Scheduler::attach(TaskNode& dependee)
 {
-    _taskGraph.attachBatch(taskNode, dependees);
+    if (COSCHE_UNLIKELY(_me == nullptr))
+    {
+        return;
+    }
 
-    releaseContext(taskNode);
+    attach(*_me, dependee);
 }
 
 void Scheduler::detach(TaskNode& lhs,
@@ -41,26 +43,45 @@ void Scheduler::detach(TaskNode& lhs,
                       rhs);
 }
 
-void Scheduler::run()
+void Scheduler::detach(TaskNode& dependee)
 {
-    _isRunning = true;
-
-    while (!_taskGraph.empty() || hasFutures())
+    if (COSCHE_UNLIKELY(_me == nullptr))
     {
-        auto nextTask = _taskGraph.top().value;
-
-        task::Abstract::TO_RUN = nextTask;
-        
-        contextSwitch(&(Scheduler::COROUTINE), 
-                      &(nextTask->_coroutine));
+        return;
     }
 
-    _isRunning = false;
+    _taskGraph.detach(*_me, dependee);
 }
 
-void Scheduler::pop()
+void Scheduler::attachBatch(TaskNode& taskNode,
+                            const std::vector<TaskNode*>& dependees)
 {
-    _taskGraph.pop();
+    _taskGraph.attachBatch(taskNode, dependees);
+
+    releaseContext(taskNode);
+}
+
+void Scheduler::attachBatch(const std::vector<TaskNode*>& dependees)
+{
+    if (COSCHE_UNLIKELY(_me == nullptr))
+    {
+        return;
+    }
+
+    attachBatch(*_me, dependees);
+}
+
+void Scheduler::run()
+{
+    while (!_taskGraph.empty() || hasFutures())
+    {
+        _me = &(_taskGraph.top());
+
+        contextSwitch(&(Scheduler::_coroutine),
+                      &(_me->value->_coroutine));
+    }
+
+    _me = nullptr;
 }
 
 bool Scheduler::hasFutures()
@@ -89,15 +110,30 @@ bool Scheduler::hasFutures()
 
 void Scheduler::releaseContext(TaskNode& taskNode)
 {
-    if (COSCHE_LIKELY(_isRunning))
+    if (COSCHE_UNLIKELY(_me == nullptr))
     {
-        auto&& task = *(taskNode.value);
-
-        contextSwitch(&(task._coroutine),
-                      &(Scheduler::COROUTINE));
+        return;
     }
+
+    auto&& task = *(taskNode.value);
+
+    contextSwitch(&(task._coroutine),
+                  &(Scheduler::_coroutine));
 }
 
-thread_local Coroutine Scheduler::COROUTINE;
+void Scheduler::taskEntryPoint()
+{
+    auto* const taskPtr = _me->value;
+
+    taskPtr->run();
+    taskPtr->_scheduler._taskGraph.pop();
+
+    contextSwitch(&(taskPtr->_coroutine),
+                  &(         _coroutine));
+}
+
+thread_local Coroutine Scheduler::_coroutine;
+
+thread_local Scheduler::TaskNode* Scheduler::_me = nullptr;
 
 } // namespace cosche

@@ -9,23 +9,11 @@ namespace cosche
 namespace task
 {
 
-void Abstract::entryPoint()
-{
-    TO_RUN->run();
-
-    TO_RUN->_scheduler.pop();
-
-    contextSwitch(&(TO_RUN->_coroutine),
-                  &(Scheduler::COROUTINE));
-}
-
 Abstract::Abstract(Scheduler& scheduler) :
     _scheduler {scheduler}
 {}
 
 Abstract::~Abstract() {}
-
-thread_local Abstract* Abstract::TO_RUN;
 
 } // namespace task
 

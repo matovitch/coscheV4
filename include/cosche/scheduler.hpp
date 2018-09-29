@@ -18,7 +18,7 @@ namespace cosche
 
 class Scheduler
 {
-    friend class task::Abstract;
+    friend struct Coroutine;
 
     using TaskGraph = TGraph<task::Abstract*>;
 
@@ -27,6 +27,18 @@ public:
     using TaskNode  = typename TaskGraph::Node;
 
     Scheduler();
+
+    void attach(TaskNode& lhs,
+                TaskNode& rhs);
+
+    void detach(TaskNode& lhs,
+                TaskNode& rhs);
+
+    void attach(TaskNode& dependee);
+
+    void detach(TaskNode& dependee);
+
+    void run();
 
     template<class ReturnType>
     TaskNode& makeTask()
@@ -38,10 +50,20 @@ public:
         return _taskGraph.makeNode(&task);
     }
 
-    void attach(TaskNode& lhs,
-                TaskNode& rhs);
+    template<class ReturnType>
+    TaskNode& makeTask(std::function<ReturnType()>&& taskWork)
+    {
+        using Task = TTask<ReturnType>;
+
+        Task& task = TFactorySingleton<Task>::instance().make(*this);
+
+        task.assign(std::move(taskWork));
+
+        return _taskGraph.makeNode(&task);
+    }
 
     void attachBatch(TaskNode& taskNode, const std::vector<TaskNode*>& dependees);
+    void attachBatch(                    const std::vector<TaskNode*>& dependees);
 
     /* Due to http://www.open-std.org/jtc1/sc22/wg21/docs/cwg_defects.html#1591,
        template deduction doesn't work with std::array. */
@@ -53,11 +75,16 @@ public:
         releaseContext(taskNode);
     }
 
+    template <std::size_t BATCH_SIZE>
+    void attachBatch(TaskNode* const (&dependees)[BATCH_SIZE])
+    {
+        if (COSCHE_UNLIKELY(_me == nullptr))
+        {
+            return;
+        }
 
-    void detach(TaskNode& lhs,
-                TaskNode& rhs);
-
-    void run();
+        attachBatch(*_me, dependees);
+    }
 
     template <class ReturnType, class Rep, class Period>
     ReturnType attach(TaskNode& taskNode,
@@ -102,17 +129,17 @@ public:
 
 private:
 
-    void pop();
+    static void taskEntryPoint();
 
     bool hasFutures();
 
     void releaseContext(TaskNode& taskNode);
 
-    bool                                             _isRunning;
-    TaskGraph                                        _taskGraph;
-    std::vector<FutureTaskPair>               _futuresTaskPairs;
+    TaskGraph                   _taskGraph;
+    std::vector<FutureTaskPair> _futuresTaskPairs;
 
-    static thread_local Coroutine COROUTINE;
+    static thread_local Coroutine _coroutine;
+    static thread_local TaskNode* _me;
 };
 
 } // namespace cosche
