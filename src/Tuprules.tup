@@ -1,0 +1,3 @@
+SRC = $(ROOT)/src
+
+SRC_OUT = libcosche.a 

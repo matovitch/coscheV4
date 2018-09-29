@@ -1,0 +1,24 @@
+ROOT = $(TUP_CWD)
+
+CX = clang++
+
+CXFLAGS  = -std=c++17
+CXFLAGS += -Wall
+
+ifeq (@(IS_DEBUG),y)
+    CXFLAGS += -g -O1 -fno-omit-frame-pointer
+else
+    CXFLAGS += -O3 -fno-rtti
+endif
+
+ifeq (@(IS_ASAN),y)
+    CXFLAGS += -fsanitize=address
+endif
+
+ifeq (@(IS_MSAN),y)
+    CXFLAGS += -fsanitize=memory
+endif
+
+CXFLAGS += -I $(ROOT)/include
+
+!cx = |> $(CX) $(CXFLAGS) -c %f -o %o |>

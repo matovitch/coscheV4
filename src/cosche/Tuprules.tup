@@ -1,0 +1,4 @@
+COSCHE = $(SRC)/cosche
+
+COSCHE_SRC  = $(COSCHE)/*.cpp
+COSCHE_SRC += $(COSCHE)/*.S

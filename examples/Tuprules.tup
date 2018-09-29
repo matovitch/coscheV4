@@ -1,0 +1,29 @@
+EXAMPLES = $(ROOT)/examples
+SRC      = $(ROOT)/src
+
+EXAMPLES_SRC = $(EXAMPLES)/*.cpp
+EXAMPLES_OBJ = $(EXAMPLES)/*.o
+
+LDFLAGS += -s
+LDFLAGS += -l pthread
+LDFLAGS += -l cosche
+LDFLAGS += -L /usr/lib/x86_64-linux-gnu
+LDFLAGS += -L $(SRC)
+
+ifeq (@(IS_ASAN),y)
+    LDFLAGS += -fsanitize=address
+endif
+
+ifeq (@(IS_MSAN),y)
+    LDFLAGS += -fsanitize=memory
+endif
+
+ifeq (@(IS_TCMALLOC),y)
+    LDFLAGS += -l tcmalloc
+endif
+
+ifeq (@(IS_STATIC),y)
+    LDFLAGS += -static-libstdc++ -static-libgcc
+endif
+
+!ld = |> $(CX) %f $(LDFLAGS) -o %o |>
