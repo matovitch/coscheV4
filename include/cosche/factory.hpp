@@ -1,7 +1,7 @@
 #pragma once
 
-#include "buffer_supervisor.hpp"
-#include "singleton.hpp"
+#include "cosche/buffer_supervisor.hpp"
+#include "cosche/singleton.hpp"
 
 #include <utility>
 #include <vector>

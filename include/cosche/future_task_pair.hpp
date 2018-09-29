@@ -1,8 +1,8 @@
 #pragma once
 
-#include "future.hpp"
-#include "task.hpp"
-#include "node.hpp"
+#include "cosche/future.hpp"
+#include "cosche/task.hpp"
+#include "cosche/node.hpp"
 
 namespace cosche
 {

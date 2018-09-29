@@ -1,7 +1,8 @@
 #include <iostream>
 #include <cstdlib>
 
-#include "cosche/cosche.hpp"
+#include "cosche/scheduler.hpp"
+#include "cosche/utils.hpp"
 
 int main()
 {

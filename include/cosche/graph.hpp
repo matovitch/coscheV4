@@ -1,9 +1,9 @@
 #pragma once
 
-#include "likelyhood.hpp"
-#include "singleton.hpp"
-#include "factory.hpp"
-#include "node.hpp"
+#include "cosche/likelyhood.hpp"
+#include "cosche/singleton.hpp"
+#include "cosche/factory.hpp"
+#include "cosche/node.hpp"
 
 #include <unordered_set>
 #include <cstddef>

@@ -1,10 +1,10 @@
 #pragma once
 
-#include "table_iterator.hpp"
-#include "table_bucket.hpp"
+#include "robin/table_iterator.hpp"
+#include "robin/table_bucket.hpp"
 
-#include "buffer_manager.hpp"
-#include "likelyhood.hpp"
+#include "robin/buffer_manager.hpp"
+#include "robin/likelyhood.hpp"
 
 #include <iostream>
 

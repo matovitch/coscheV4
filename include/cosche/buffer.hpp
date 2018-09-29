@@ -1,6 +1,6 @@
 #pragma once
 
-#include "likelyhood.hpp"
+#include "cosche/likelyhood.hpp"
 
 #include <type_traits>
 #include <functional>

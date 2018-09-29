@@ -1,7 +1,7 @@
 #pragma once
 
-#include "likelyhood.hpp"
-#include "buffer.hpp"
+#include "cosche/likelyhood.hpp"
+#include "cosche/buffer.hpp"
 
 #include <functional>
 #include <cstdint>

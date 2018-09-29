@@ -1,7 +1,7 @@
 #pragma once
 
-#include "singleton_supervisor.hpp"
-#include "likelyhood.hpp"
+#include "cosche/singleton_supervisor.hpp"
+#include "cosche/likelyhood.hpp"
 
 namespace cosche
 {

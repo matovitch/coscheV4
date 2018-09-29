@@ -1,7 +1,7 @@
 #pragma once
 
-#include "singleton.hpp"
-#include "factory.hpp"
+#include "cosche/singleton.hpp"
+#include "cosche/factory.hpp"
 
 namespace cosche
 {

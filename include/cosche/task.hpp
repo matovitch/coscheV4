@@ -32,8 +32,6 @@ public:
 
     virtual ~Abstract();
 
-private:
-
     Scheduler& _scheduler;
     Coroutine  _coroutine;
 

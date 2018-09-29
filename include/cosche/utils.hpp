@@ -1,8 +1,7 @@
 #pragma once
 
-#include "scheduler.hpp"
-#include "node.hpp"
-#include "task.hpp"
+#include "cosche/node.hpp"
+#include "cosche/task.hpp"
 
 #include <functional>
 
