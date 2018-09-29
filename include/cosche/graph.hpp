@@ -169,24 +169,6 @@ private:
         }
     }
 
-    struct NodePtrHasher
-    {
-        std::size_t operator()(const Node* const nodePtr) const
-        {
-            const std::size_t data = reinterpret_cast<std::size_t>(nodePtr);
-
-            const std::size_t base = 0x00000100000001b3;
-            std::size_t hash = 0xcbf29ce484222325;
-
-            hash = (hash ^ (data & 0xff)) * base;
-            hash = (hash ^ (data & 0xff00)) * base;
-            hash = (hash ^ (data & 0xff0000)) * base;
-            hash = (hash ^ (data & 0xff000000)) * base;
-
-            return hash;
-        }
-    };
-
     std::unordered_set<Node*> _pendings;
     std::unordered_set<Node*> _blockeds;
 
