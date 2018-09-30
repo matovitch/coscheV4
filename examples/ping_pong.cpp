@@ -8,9 +8,11 @@
 #include "cosche/scheduler.hpp"
 #include "cosche/utils.hpp"
 
+using namespace std::chrono_literals;
+
 int main()
 {
-    cosche::Scheduler scheduler;
+    cosche::Scheduler scheduler{/*future poll delay when IDLE: */ 10us};
 
     auto&& pingTask = scheduler.makeTask<void>();
 
@@ -24,8 +26,6 @@ int main()
                         std::cout << "Pong!" << std::endl;
                         scheduler.detach(pingTask);
 
-                        using namespace std::chrono_literals;
-
                         auto&& answer = scheduler.attach
                             (
                                 std::async
@@ -36,7 +36,6 @@ int main()
                                         return 42;
                                     }
                                 ),
-                                10us, // polling delay to avoid maxing out CPU
                                 2s    // timeout
                             );
 

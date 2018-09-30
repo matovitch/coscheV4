@@ -1,11 +1,13 @@
 #pragma once
 
-#include "factory_singleton.hpp"
-#include "future_task_pair.hpp"
-#include "coroutine.hpp"
-#include "future.hpp"
-#include "graph.hpp"
-#include "task.hpp"
+#include "cosche/factory_singleton.hpp"
+#include "cosche/future_task_pair.hpp"
+#include "cosche/context_switch.hpp"
+#include "cosche/coroutine.hpp"
+#include "cosche/register.hpp"
+#include "cosche/future.hpp"
+#include "cosche/graph.hpp"
+#include "cosche/task.hpp"
 
 #include <optional>
 #include <vector>
@@ -26,7 +28,18 @@ public:
 
     using TaskNode  = typename TaskGraph::Node;
 
-    Scheduler();
+    Scheduler() :
+        _futuresPollDelay{10000 /*in nanoseconds*/}
+    {
+        mmxFpuSave(&MMX_FPU_STATE);
+    }
+
+    template <class Rep, class Period>
+    Scheduler(const std::chrono::duration<Rep, Period>& futuresPollDelay) :
+        _futuresPollDelay{futuresPollDelay}
+    {
+        mmxFpuSave(&MMX_FPU_STATE);
+    }
 
     void attach(TaskNode& lhs,
                 TaskNode& rhs);
@@ -90,15 +103,13 @@ public:
         attachBatch(*_me, dependees);
     }
 
-    template <class ReturnType, class Rep, class Period>
+    template <class ReturnType>
     ReturnType attach(TaskNode& taskNode,
-                      std::future<ReturnType>&& future,
-                      const std::chrono::duration<Rep, Period>& pollingDelay)
+                      std::future<ReturnType>&& future)
     {
-        using Future = TFuture<ReturnType, Rep, Period>;
+        using Future = TFuture<ReturnType>;
 
-        auto&& theFuture = TFactorySingleton<Future>::instance().make(std::move(future),
-                                                                      pollingDelay);
+        auto&& theFuture = TFactorySingleton<Future>::instance().make(std::move(future));
         _futuresTaskPairs.emplace_back(&theFuture, &taskNode);
 
         attach(taskNode,
@@ -107,29 +118,25 @@ public:
         return theFuture.value().get();
     }
 
-    template <class ReturnType, class Rep, class Period>
-    ReturnType attach(std::future<ReturnType>&& future,
-                      const std::chrono::duration<Rep, Period>& pollingDelay)
+    template <class ReturnType>
+    ReturnType attach(std::future<ReturnType>&& future)
     {
         if (COSCHE_UNLIKELY(_me == nullptr))
         {
             return future.get();
         }
 
-        return attach(*_me, std::move(future), pollingDelay);
+        return attach(*_me, std::move(future));
     }
 
-    template <class ReturnType, class Rep1, class Period1,
-                                class Rep2, class Period2>
+    template <class ReturnType, class Rep, class Period>
     std::optional<ReturnType> attach(TaskNode& taskNode,
                                      std::future<ReturnType>&& future,
-                                     const std::chrono::duration<Rep1, Period1>& pollingDelay,
-                                     const std::chrono::duration<Rep2, Period2>& timeoutDuration)
+                                     const std::chrono::duration<Rep, Period>& timeoutDuration)
     {
-        using Future = future::TScoped<ReturnType, Rep1, Period1>;
+        using Future = future::TWithTimeout<ReturnType>;
 
         auto&& theFuture = TFactorySingleton<Future>::instance().make(std::move(future),
-                                                                      pollingDelay,
                                                                       timeoutDuration);
         _futuresTaskPairs.emplace_back(&theFuture, &taskNode);
 
@@ -143,18 +150,16 @@ public:
             std::optional<ReturnType>{};
     }
 
-    template <class ReturnType, class Rep1, class Period1,
-                                class Rep2, class Period2>
+    template <class ReturnType, class Rep, class Period>
     std::optional<ReturnType> attach(std::future<ReturnType>&& future,
-                                     const std::chrono::duration<Rep1, Period1>& pollingDelay,
-                                     const std::chrono::duration<Rep2, Period2>& timeoutDuration)
+                                     const std::chrono::duration<Rep, Period>& timeoutDuration)
     {
         if (COSCHE_UNLIKELY(_me == nullptr))
         {
             return {};
         }
 
-        return attach(*_me, std::move(future), pollingDelay, timeoutDuration);
+        return attach(*_me, std::move(future), timeoutDuration);
     }
 
 private:
@@ -167,6 +172,8 @@ private:
 
     TaskGraph                   _taskGraph;
     std::vector<FutureTaskPair> _futuresTaskPairs;
+
+    std::chrono::nanoseconds _futuresPollDelay;
 
     static thread_local Coroutine _coroutine;
     static thread_local TaskNode* _me;

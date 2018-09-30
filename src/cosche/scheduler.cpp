@@ -8,14 +8,10 @@
 #include "cosche/node.hpp"
 
 #include <iostream>
+#include <chrono>
 
 namespace cosche
 {
-
-Scheduler::Scheduler()
-{
-    mmxFpuSave(&MMX_FPU_STATE);
-}
 
 void Scheduler::attach(TaskNode& lhs,
                        TaskNode& rhs)
@@ -75,6 +71,12 @@ void Scheduler::run()
 {
     while (!_taskGraph.empty() || hasFutures())
     {
+        if (_taskGraph.empty())
+        {
+            std::this_thread::sleep_for(_futuresPollDelay);
+            continue;
+        }
+
         _me = &(_taskGraph.top());
 
         contextSwitch(&(Scheduler::_coroutine),
