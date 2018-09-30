@@ -6,7 +6,8 @@ CXFLAGS  = -std=c++17
 CXFLAGS += -Wall
 
 ifeq (@(IS_DEBUG),y)
-    CXFLAGS += -g -O1 -fno-omit-frame-pointer
+    CXFLAGS += -g
+#-fno-omit-frame-pointer
 else
     CXFLAGS += -O3 -fno-rtti
 endif

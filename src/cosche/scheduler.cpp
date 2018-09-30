@@ -43,14 +43,14 @@ void Scheduler::detach(TaskNode& lhs,
                       rhs);
 }
 
-void Scheduler::detach(TaskNode& dependee)
+void Scheduler::detach(TaskNode& depender)
 {
     if (COSCHE_UNLIKELY(_me == nullptr))
     {
         return;
     }
 
-    _taskGraph.detach(*_me, dependee);
+    _taskGraph.detach(depender, *_me);
 }
 
 void Scheduler::attachBatch(TaskNode& taskNode,

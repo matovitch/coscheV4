@@ -36,7 +36,11 @@ public:
 
     void attach(TaskNode& dependee);
 
-    void detach(TaskNode& dependee);
+    void detach(TaskNode& depender);
+
+    void detachAll(TaskNode& depender);
+
+    void detachAll();
 
     void run();
 
@@ -103,6 +107,18 @@ public:
         return theFuture.value().get();
     }
 
+    template <class ReturnType, class Rep, class Period>
+    ReturnType attach(std::future<ReturnType>&& future,
+                      const std::chrono::duration<Rep, Period>& pollingDelay)
+    {
+        if (COSCHE_UNLIKELY(_me == nullptr))
+        {
+            return future.get();
+        }
+
+        return attach(*_me, std::move(future), pollingDelay);
+    }
+
     template <class ReturnType, class Rep1, class Period1,
                                 class Rep2, class Period2>
     std::optional<ReturnType> attach(TaskNode& taskNode,
@@ -125,6 +141,20 @@ public:
         return (theFuture.value().wait_for(0s) == std::future_status::ready) ?
             std::optional<ReturnType>{theFuture.value().get()}               :
             std::optional<ReturnType>{};
+    }
+
+    template <class ReturnType, class Rep1, class Period1,
+                                class Rep2, class Period2>
+    std::optional<ReturnType> attach(std::future<ReturnType>&& future,
+                                     const std::chrono::duration<Rep1, Period1>& pollingDelay,
+                                     const std::chrono::duration<Rep2, Period2>& timeoutDuration)
+    {
+        if (COSCHE_UNLIKELY(_me == nullptr))
+        {
+            return {};
+        }
+
+        return attach(*_me, std::move(future), pollingDelay, timeoutDuration);
     }
 
 private:
