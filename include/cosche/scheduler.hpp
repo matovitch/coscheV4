@@ -166,7 +166,7 @@ private:
 
     static void taskEntryPoint();
 
-    void checkFutures();
+    bool hasFutures();
 
     void releaseContext(TaskNode& taskNode);
 

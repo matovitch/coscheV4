@@ -18,9 +18,9 @@ class TStack
 
 public:
 
-    void* base()
+    uint8_t* base()
     {
-        return reinterpret_cast<void*>(&_memory) + ALIGNED_SIZE - OFFSET;
+        return reinterpret_cast<uint8_t*>(&_memory) + ALIGNED_SIZE - OFFSET;
     }
 
 private:

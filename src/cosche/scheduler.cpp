@@ -7,7 +7,7 @@
 #include "cosche/task.hpp"
 #include "cosche/node.hpp"
 
-#include <iostream>
+#include <thread>
 #include <chrono>
 
 namespace cosche
@@ -69,27 +69,25 @@ void Scheduler::attachBatch(const std::vector<TaskNode*>& dependees)
 
 void Scheduler::run()
 {
-    do
-    {
-        checkFutures();
 
+    while (!_taskGraph.empty() || hasFutures())
+    {
         _me = &(_taskGraph.top());
 
         contextSwitch(&(Scheduler::_coroutine),
                       &(_me->value->_coroutine));
     }
-     while (!_taskGraph.empty());
 
     _me = nullptr;
 
     // TODO: deals with cyclic task graph here.
 }
 
-void Scheduler::checkFutures()
+bool Scheduler::hasFutures()
 {
     if (_futuresTaskPairs.empty())
     {
-        return;
+        return false;
     }
 
     pollFutures:
@@ -117,6 +115,8 @@ void Scheduler::checkFutures()
             goto pollFutures;
         }
     }
+
+    return true;
 }
 
 void Scheduler::releaseContext(TaskNode& taskNode)
