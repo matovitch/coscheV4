@@ -14,6 +14,8 @@ void Supervisor::clean()
         singleton->clean();
         delete singleton;
     }
+
+    _singletons.clear();
 }
 
 std::vector<Abstract*> Supervisor::_singletons;
