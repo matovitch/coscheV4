@@ -1,0 +1,2 @@
+1. Try to get rid of Node type by including dependees and dependers directly in the tasks.
+2. Try to make these hashable by including an uint64_t field on first cache line build on construct using xorShift.
