@@ -15,11 +15,12 @@ class TAbstract
 {
     using Heap = typename AbstractTraits::Heap;
     using View = typename AbstractTraits::View;
-    
+
 public:
 
     virtual                 View  makeView()       = 0;
     virtual std::unique_ptr<Heap> makeNext() const = 0;
+    virtual std::unique_ptr<Heap> makePrev() const = 0;
 
     virtual ~TAbstract() {}
 };
@@ -41,11 +42,11 @@ namespace abstract
 template <std::size_t SIZEOF,
           std::size_t ALIGNOF>
 struct TTraits
-{    
+{
     using HeapTraits = heap::TTraits<SIZEOF, ALIGNOF>;
-    
+
     using Heap = THeap<HeapTraits>;
-    
+
     using View = TView<SIZEOF>;
 };
 

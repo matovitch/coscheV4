@@ -6,7 +6,7 @@ namespace robin
 {
 
 namespace buffer
-{ 
+{
 
 template <std::size_t VIEW_SIZEOF>
 struct TView

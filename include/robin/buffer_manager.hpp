@@ -15,7 +15,7 @@ template <class ManagerTraits>
 class TManager
 {
     static constexpr std::size_t SIZEOF  = ManagerTraits::SIZEOF;
-                                     
+
     using Abstract = typename ManagerTraits::Abstract;
     using Stack    = typename ManagerTraits::Stack;
     using Heap     = typename ManagerTraits::Heap;
@@ -23,31 +23,47 @@ class TManager
 
 public:
 
+    enum
+    {
+        VIEW_PREV,
+        VIEW_NEXT
+    };
+
     TManager() : _bufferPtr{&_stack} {}
-    
+
     View makeView()
     {
-        return  _bufferPtr->makeView();   
+        return  _bufferPtr->makeView();
     }
-    
-    View makeNextView()
+
+    template <auto VIEW_TYPE>
+    View makeView()
     {
-        _nextPtr = std::move(_bufferPtr->makeNext());
-        return _nextPtr->makeView();
+        if constexpr (VIEW_TYPE == VIEW_NEXT)
+        {
+            _tempPtr = std::move(_bufferPtr->makeNext());
+        }
+
+        if constexpr (VIEW_TYPE == VIEW_PREV)
+        {
+            _tempPtr = std::move(_bufferPtr->makePrev());
+        }
+
+        return _tempPtr->makeView();
     }
-    
+
     void swapBuffers()
     {
-        _heapPtr = std::move(_nextPtr);
+        _heapPtr = std::move(_tempPtr);
         _bufferPtr = _heapPtr.get();
     }
-    
+
 private:
 
     Abstract*             _bufferPtr;
     Stack                 _stack;
     std::unique_ptr<Heap> _heapPtr;
-    std::unique_ptr<Heap> _nextPtr;
+    std::unique_ptr<Heap> _tempPtr;
 };
 
 namespace manager
@@ -60,22 +76,22 @@ struct TTraits
 {
     static constexpr std::size_t SIZE    = MANAGER_SIZE;
     static constexpr std::size_t SIZEOF  = MANAGER_SIZEOF;
-    static constexpr std::size_t ALIGNOF = MANAGER_ALIGNOF; 
+    static constexpr std::size_t ALIGNOF = MANAGER_ALIGNOF;
 
     using StackTraits    = stack::TTraits    <SIZE,
                                               SIZEOF,
                                               ALIGNOF>;
-                                       
+
     using HeapTraits     = heap::TTraits     <SIZEOF,
                                               ALIGNOF>;
-                                     
+
     using AbstractTraits = abstract::TTraits <SIZEOF,
                                               ALIGNOF>;
-                                     
+
     using Abstract = TAbstract <AbstractTraits>;
     using Stack    = TStack    <StackTraits>;
     using Heap     = THeap     <HeapTraits>;
-    
+
     using View = TView<SIZEOF>;
 };
 

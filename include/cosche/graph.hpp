@@ -133,7 +133,7 @@ public:
         return cycle;
     }
 
-    Node& top() const
+    Node& top()
     {
         return **(_pendings.begin());
     }
@@ -169,8 +169,20 @@ private:
         }
     }
 
-    std::unordered_set<Node*> _pendings;
-    std::unordered_set<Node*> _blockeds;
+    struct NodePtrHasher
+    {
+        std::size_t operator()(const Node* const nodePtr) const
+        {
+            return (reinterpret_cast<std::size_t>(nodePtr) >> 8) * 11400714819323198485llu;
+        }
+    };
+
+
+    using NodePtrSetTraits = robin::table::TTraits<Node*, NodePtrHasher, std::equal_to<Node*>, 3, 4>;
+    using NodePtrSet       = robin::TTable<NodePtrSetTraits>;
+
+    NodePtrSet _pendings;
+    NodePtrSet _blockeds;
 
     using NodeFactory = TFactory<Node>;
 

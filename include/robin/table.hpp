@@ -2,11 +2,10 @@
 
 #include "robin/table_iterator.hpp"
 #include "robin/table_bucket.hpp"
+#include "robin/xor_shifter.hpp"
 
 #include "robin/buffer_manager.hpp"
 #include "robin/likelyhood.hpp"
-
-#include <iostream>
 
 namespace robin
 {
@@ -20,18 +19,25 @@ class TTable
     using Comparator    = typename TableTraits::Comparator;
     using BufferManager = typename TableTraits::BufferManager;
 
-    static constexpr std::size_t MASK = TableTraits::MASK;
+    static constexpr std::size_t MASK              = TableTraits::MASK;
+    static constexpr std::size_t STACK_SIZE        = TableTraits::STACK_SIZE;
+    static constexpr std::size_t LOAD_FACTOR_LEVEL = TableTraits::LOAD_FACTOR_LEVEL;
 
-    static constexpr const std::size_t LOAD_FACTOR_LEVEL = TableTraits::LOAD_FACTOR_LEVEL;
+    static constexpr auto REHASH_PREV = BufferManager::VIEW_PREV;
+    static constexpr auto REHASH_NEXT = BufferManager::VIEW_NEXT;
 
 public:
 
     using       iterator = typename TableTraits::     Iterator;
     using const_iterator = typename TableTraits::ConstIterator;
 
+    friend       iterator;
+    friend const_iterator;
+
     TTable() :
         _mask{MASK},
-        _size{0}
+        _size{0},
+        _capacity{STACK_SIZE}
     {
         const auto& bufferView = _bufferManager.makeView();
 
@@ -39,39 +45,6 @@ public:
         _capacity =                           bufferView.size - 1;
 
         init();
-    }
-
-    void rehash()
-    {
-        const Bucket* const oldBuckets  = _buckets;
-        const std::size_t   oldCapacity = _capacity;
-
-        const auto& bufferNextView = _bufferManager.makeNextView();
-
-        _buckets = reinterpret_cast<Bucket*>(bufferNextView.data);
-
-        _capacity <<= 1;
-        _mask = _capacity - 1;
-        _size = 0;
-
-        init();
-
-        for (std::size_t bucketIndex = 0; 
-                         bucketIndex < oldCapacity;
-                         bucketIndex++)
-        {
-            const auto& oldBucket = oldBuckets[bucketIndex];
-            
-            if (oldBucket.isFilled())
-            {
-                emplace(oldBucket.value());
-                oldBucket.~Bucket();
-            }
-        }
-
-        oldBuckets[oldCapacity].~Bucket();
-
-        _bufferManager.swapBuffers();
     }
 
     template <class... Args>
@@ -93,11 +66,11 @@ public:
             BUCKET_SCAN: // goto label
 
             ++dib;
-            head = (++head == _buckets + _capacity) ? _buckets : head;
+            head = (++head == _endPtr) ? _buckets : head;
 
             if (ROBIN_UNLIKELY(!dib))
             {
-                rehash();
+                rehash<REHASH_NEXT>();
                 goto REDO;
             }
         }
@@ -106,12 +79,17 @@ public:
         {
             if (ROBIN_UNLIKELY(++_size << LOAD_FACTOR_LEVEL > (_capacity << LOAD_FACTOR_LEVEL) - _capacity))
             {
-                rehash();
+                rehash<REHASH_NEXT>();
                 goto REDO;
             }
 
             head->fill(dib, std::move(t));
-        }   
+
+            if (_beginPtr == _endPtr)
+            {
+                _beginPtr = head;
+            }
+        }
         else
         {
             if (dib != head->dib())
@@ -145,7 +123,7 @@ public:
         while (dib < prec->dib() || (dib == prec->dib() && !_comparator(t, prec->value())))
         {
             dib++;
-            prec = (++prec == _buckets + _capacity) ? _buckets : prec;
+            prec = (++prec == _endPtr) ? _buckets : prec;
         }
 
         if (dib == prec->dib())
@@ -166,22 +144,22 @@ public:
 
     iterator begin()
     {
-        return tBegin<TTable<TableTraits>, iterator>(*this);
+        return iterator{_beginPtr, *this};
     }
 
     const_iterator begin() const
     {
-        return tBegin<const TTable<TableTraits>, const_iterator>(*this);
+        return const_iterator{_beginPtr, *this};
     }
 
     iterator end()
     {
-        return iterator{_buckets + _capacity};
+        return iterator{_endPtr, *this};
     }
 
     const_iterator end() const
     {
-        return const_iterator{_buckets + _capacity};
+        return const_iterator{_endPtr, *this};
     }
 
     template <class Type>
@@ -196,51 +174,91 @@ public:
         return tFind<const TTable<TableTraits>, const_iterator, Type>(*this, t);
     }
 
-    iterator erase(const_iterator it)
+    void erase(const_iterator it)
     {
         Bucket* bucketPtr = it._bucketPtr;
 
         shiftBuckets(bucketPtr);
-
-        while (bucketPtr->isEmpty())
-        {
-            bucketPtr++;
-        }
-
-        return iterator{bucketPtr};
     }
 
 private:
 
+    template <auto REHASH_TYPE>
+    void rehash()
+    {
+        const Bucket* const oldBuckets  = _buckets;
+        const std::size_t   oldCapacity = _capacity;
+
+        const auto& bufferView = _bufferManager.template makeView<REHASH_TYPE>();
+
+        _buckets = reinterpret_cast<Bucket*>(bufferView.data);
+
+        if constexpr(REHASH_TYPE == REHASH_PREV)
+        {
+            _capacity >>= 2;
+        }
+
+        if constexpr (REHASH_TYPE == REHASH_NEXT)
+        {
+            _capacity <<= 1;
+        }
+
+        init();
+
+        for (std::size_t bucketIndex = 0;
+                         bucketIndex < oldCapacity;
+                         bucketIndex++)
+        {
+            const auto& oldBucket = oldBuckets[bucketIndex];
+
+            if (oldBucket.isFilled())
+            {
+                emplace(oldBucket.value());
+                oldBucket.~Bucket();
+            }
+        }
+
+        oldBuckets[oldCapacity].~Bucket();
+
+        _bufferManager.swapBuffers();
+    }
+
     void shiftBuckets(Bucket* prec)
     {
-        Bucket* succ = (prec + 1 == _buckets + _capacity) ? _buckets : prec + 1;
+        Bucket* succ = (prec + 1 == _endPtr) ? _buckets : prec + 1;
 
         // Shift the right-adjacent buckets to the left
         while (succ->dib() > Bucket::FILLED)
         {
             prec->fill(succ->dib() - 1, std::move(succ->value()));
             prec = succ;
-            succ = (++succ == _buckets + _capacity) ? _buckets : succ;
+            succ = (++succ == _endPtr) ? _buckets : succ;
         }
 
         // Empty the bucket and decrement the size
         prec->markEmpty();
 
-        _size--;
-    }
-
-    template <class Table, class Iterator>
-    static Iterator tBegin(Table& table)
-    {
-        Bucket* bucketPtr = table._buckets;
-
-        while (bucketPtr->isEmpty())
+        if (ROBIN_UNLIKELY(--_size << LOAD_FACTOR_LEVEL < ((_capacity << LOAD_FACTOR_LEVEL) - _capacity) >> 2 && _size > STACK_SIZE))
         {
-            bucketPtr++;
+            rehash<REHASH_PREV>();
+            return;
         }
 
-        return Iterator{bucketPtr};
+        if (prec == _beginPtr)
+        {
+            if (_size == 0)
+            {
+                _beginPtr = _endPtr;
+                return;
+            }
+
+            _beginPtr = _buckets + (_xorShifter() & _mask);
+
+            while (_beginPtr->isEmpty())
+            {
+                _beginPtr = _buckets + (_xorShifter() & _mask);
+            }
+        }
     }
 
     template <class Table, class Iterator, class Type>
@@ -251,44 +269,53 @@ private:
         Bucket* prec = table._buckets + ((table._hasher(t) + dib) & table._mask);
 
         const Comparator& comparator = table._comparator;
-        const std::size_t capacity   = table._capacity;
         Bucket* const     buckets    = table._buckets;
+        Bucket* const     endPtr     = table._endPtr;
 
         // Skip buckets with lower dib or different value
         while (dib < prec->dib() || (dib == prec->dib() && !comparator(t, prec->value())))
         {
             dib++;
-            prec = (++prec == buckets + capacity) ? buckets : prec;
+            prec = (++prec == endPtr) ? buckets : prec;
         }
 
         if (dib == prec->dib())
         {
-            return Iterator{prec};
+            return Iterator{prec, table};
         }
 
         // No luck :(
         return table.end();
     }
 
-
     void init()
     {
-        for (std::size_t bucketIndex = 0; 
+        for (std::size_t bucketIndex = 0;
                  bucketIndex <= _capacity;
                  bucketIndex++)
         {
-            new (reinterpret_cast<void*>(_buckets + bucketIndex)) Bucket();
+            new (reinterpret_cast<void*>(_buckets + bucketIndex)) Bucket{};
         }
 
-        _buckets[_capacity].markFilled(); // for it == end() optimization
+        _mask = _capacity - 1;
+
+        _endPtr   = _buckets + _capacity;
+        _beginPtr = _endPtr;
+
+        _endPtr->markFilled(); // for it == end() optimization
+
+        _size = 0;
     }
 
     Bucket*       _buckets;
     std::size_t   _mask;
-    std::size_t   _size;
-    std::size_t   _capacity;
+    Bucket*       _endPtr;
+    Bucket*       _beginPtr;
     Hasher        _hasher;
     Comparator    _comparator;
+    std::size_t   _size;
+    std::size_t   _capacity;
+    XorShifter    _xorShifter;
     BufferManager _bufferManager;
 };
 
@@ -318,7 +345,7 @@ struct TTraits
     using Traits = TTraits<Type, Hasher, Comparator, STACK_SIZE_LOG2, LOAD_FACTOR_LEVEL>;
 
     using      Iterator = table::iterator::TMakeFromTraits<Traits>;
-    using ConstIterator = table::iterator::TMakeFromTraits<Traits>;   
+    using ConstIterator = table::iterator::TMakeFromTraits<Traits>;
 };
 
 } // namespace table

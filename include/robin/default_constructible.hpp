@@ -13,7 +13,7 @@ union DefaultConstructible
 public:
 
     DefaultConstructible() : _dummy{} {}
-    
+
     template<class... Args>
     void construct(Args&&... args)
     {

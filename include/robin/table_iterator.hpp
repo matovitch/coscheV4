@@ -1,6 +1,7 @@
 #pragma once
 
 #include "robin/table_bucket.hpp"
+#include "robin/likelyhood.hpp"
 
 #include <iterator>
 
@@ -62,12 +63,14 @@ class TIterator : std::iterator<std::forward_iterator_tag,
                                            const Iterator& rhs);
 public:
 
-    TIterator(Bucket* const bucketPtr) :
-        _bucketPtr{bucketPtr}
+    TIterator(Bucket* const bucketPtr, const Table& table) :
+        _bucketPtr{bucketPtr},
+        _table{table}
     {}
 
     TIterator(const Iterator& toCopy) :
-        _bucketPtr{toCopy._bucketPtr}
+        _bucketPtr{toCopy._bucketPtr},
+        _table{toCopy._table}
     {}
 
     void operator=(const Iterator& toCopy)
@@ -84,10 +87,12 @@ public:
     {
         do
         {
-            _bucketPtr++;
-
+            _bucketPtr = (++_bucketPtr == _table._endPtr) ? _table._buckets
+                                                          : _bucketPtr;
         } while (_bucketPtr->isEmpty());
-        // we skipped the empty buckets ! Hoora !
+
+        _bucketPtr = (_bucketPtr == _table._beginPtr) ? _table._endPtr
+                                                      : _bucketPtr;
         return *this;
     }
 
@@ -101,6 +106,7 @@ public:
 private:
 
     Bucket* _bucketPtr;
+    const Table&  _table;
 };
 
 template <class IteratorTraits>

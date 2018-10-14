@@ -7,9 +7,19 @@ CXFLAGS += -Wall
 
 ifeq (@(IS_DEBUG),y)
     CXFLAGS += -g
-#-fno-omit-frame-pointer
-else
-    CXFLAGS += -O3 -fno-rtti
+endif
+
+ifeq (@(IS_O_LEVEL),0)
+    CXFLAGS += -O1
+endif
+ifeq (@(IS_O_LEVEL),1)
+    CXFLAGS += -O1
+endif
+ifeq (@(IS_O_LEVEL),2)
+    CXFLAGS += -O2
+endif
+ifeq (@(IS_O_LEVEL),3)
+    CXFLAGS += -O3
 endif
 
 ifeq (@(IS_ASAN),y)

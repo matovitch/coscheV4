@@ -16,19 +16,16 @@ class TBucket
 
 public:
 
-    enum
-    {
-        EMPTY  = 0,
-        FILLED = 1
-    };
+    static constexpr uint8_t EMPTY  = 0;
+    static constexpr uint8_t FILLED = 1;
 
     TBucket() : _dib{EMPTY} {}
 
-    void markEmpty () { _dib = EMPTY ; }
-    void markFilled() { _dib = FILLED; }
+    void markEmpty  () { _dib = EMPTY  ; }
+    void markFilled () { _dib = FILLED ; }
 
-    bool isEmpty () const { return _dib == EMPTY; }
-    bool isFilled() const { return _dib != EMPTY; }
+    bool isEmpty  () const { return _dib == EMPTY ; }
+    bool isFilled () const { return _dib != EMPTY ; }
 
     template<class... Args>
     void fill(uint8_t dib, Args&&... args)

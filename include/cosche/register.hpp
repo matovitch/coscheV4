@@ -12,7 +12,7 @@ extern thread_local Register MMX_FPU_STATE;
 namespace RegisterMap
 {
 
-enum 
+enum
 {
     R12,
     R13,

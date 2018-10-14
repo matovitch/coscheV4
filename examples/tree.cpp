@@ -5,7 +5,7 @@
 #include "cosche/scheduler.hpp"
 #include "cosche/utils.hpp"
 
-static constexpr unsigned TREE_DEPTH = 21;
+static constexpr unsigned TREE_DEPTH = 5;
 
 std::function<void()> makeRecursiveWork(const unsigned treeDepth, cosche::Scheduler& scheduler)
 {
@@ -14,7 +14,7 @@ std::function<void()> makeRecursiveWork(const unsigned treeDepth, cosche::Schedu
         return
             []()
             {
-                //std::cout << "Here is a leaf! - treeDepth = 0" << std::endl;
+                std::cout << "Here is a leaf! - treeDepth = 0" << std::endl;
             };
     }
 
@@ -26,7 +26,7 @@ std::function<void()> makeRecursiveWork(const unsigned treeDepth, cosche::Schedu
 
             scheduler.attachBatch({&left, &right});
 
-            //std::cout << "Here is a node! - treeDepth = " << treeDepth << std::endl;
+            std::cout << "Here is a node! - treeDepth = " << treeDepth << std::endl;
         };
 }
 

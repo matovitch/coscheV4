@@ -4,9 +4,9 @@ SRC      = $(ROOT)/src
 EXAMPLES_SRC = $(EXAMPLES)/*.cpp
 EXAMPLES_OBJ = $(EXAMPLES)/*.o
 
-#LDFLAGS += -s
 LDFLAGS += -l pthread
 LDFLAGS += -l cosche
+
 LDFLAGS += -L /usr/lib/x86_64-linux-gnu
 LDFLAGS += -L $(SRC)
 
