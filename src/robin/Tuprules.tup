@@ -1,0 +1,3 @@
+ROBIN = $(SRC)/robin
+
+ROBIN_SRC  = $(ROBIN)/*.cpp

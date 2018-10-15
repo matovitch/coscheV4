@@ -4,7 +4,6 @@
 
 #include <unordered_set>
 #include <functional>
-#include <cstddef>
 
 namespace cosche
 {
