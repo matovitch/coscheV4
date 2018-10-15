@@ -20,7 +20,7 @@ class TNode
 private:
 
     using NodeSetTraits = robin::table::TTraits<TNode<Type>*, std::hash<TNode<Type>*>, std::equal_to<TNode<Type>*>, 2, 4>;
-    using NodeSet       = robin::TTable<NodeSetTraits>; /*std::unordered_set<TNode<Type>*>*/
+    using NodeSet       = robin::TTable<NodeSetTraits>;
 
     NodeSet _dependers;
     NodeSet _dependees;
