@@ -54,11 +54,9 @@ public:
 
         REDO: // goto label
 
-        const std::size_t hash = _hasher(t);
-
         uint8_t dib = Bucket::FILLED;
 
-        Bucket* head = _buckets + ((hash + dib) & _mask);
+        Bucket* head = _buckets + (_hasher(t) & _mask);
 
         // Skip filled buckets with larger dib
         while (dib < head->dib())
@@ -117,7 +115,7 @@ public:
     {
         uint8_t dib = Bucket::FILLED;
 
-        Bucket* prec = _buckets + ((_hasher(t) + dib) & _mask);
+        Bucket* prec = _buckets + (_hasher(t) & _mask);
 
         // Skip buckets with lower dib or different value
         while (dib < prec->dib() || (dib == prec->dib() && !_comparator(t, prec->value())))
@@ -252,12 +250,11 @@ private:
                 return;
             }
 
-            _beginPtr = _buckets + (_xorShifter() & _mask);
-
-            while (_beginPtr->isEmpty())
+            do
             {
                 _beginPtr = _buckets + (_xorShifter() & _mask);
-            }
+
+            } while (_beginPtr->isEmpty());
         }
     }
 
@@ -266,7 +263,7 @@ private:
     {
         uint8_t dib =  Bucket::FILLED;
 
-        Bucket* prec = table._buckets + ((table._hasher(t) + dib) & table._mask);
+        Bucket* prec = table._buckets + (table._hasher(t) & table._mask);
 
         const Comparator& comparator = table._comparator;
         Bucket* const     buckets    = table._buckets;
