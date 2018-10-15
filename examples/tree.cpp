@@ -5,7 +5,7 @@
 #include "cosche/scheduler.hpp"
 #include "cosche/utils.hpp"
 
-static constexpr unsigned TREE_DEPTH = 5;
+static constexpr unsigned TREE_DEPTH = 4;
 
 std::function<void()> makeRecursiveWork(const unsigned treeDepth, cosche::Scheduler& scheduler)
 {
